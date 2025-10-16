@@ -1,0 +1,14 @@
+crud de clientes
+-busqueda y filtrado nombre cuidad 
+-listado general de los clientes id tel id etc
+-historial de operaciones de de cada cliente
+-validacion de datos - clientes omonimos para evitar duplicacod s validadcion de dni
+-estado de cliente
+-gestion de los creditos: registrar un uevo credito , definir moto total plzao cantidad de cuotas
+ interez forma de pago calcular esas cuotas auto
+-mostrar si esta vencido financiado
+-gnerar un plan de pago por fechas  y montos
+-permitir pagos parciales o totales
+-registrar moras o intereses por atrasos
+-estado actual de credito
+-alertas por stock fecha automaticas proximas a vencer

@@ -103,6 +103,7 @@ tu_proyecto_xampp/htdocs/
 ```
 
 ### **PASO 3: Crear Base de Datos**
+### Ejecutar los sql a continuacion o copiar y pegar el contenido de los archivos sql de la carpeta sqlDB en phpMyAdmin
 ```sql
 CREATE DATABASE IF NOT EXISTS almacen;
 USE almacen;

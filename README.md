@@ -76,14 +76,18 @@ proyecto/
 
 ## 🚀 PASOS DE INSTALACIÓN
 
-### **PASO 1: Descargar el Template**
+### **PASO 1: Descargar el Template y El sistema Base**
 ```bash
+#Clonar desde GitHub en Sistema Base
+git clone ttps://github.com/PaulGerman23/clientes_creditos
+
 # Opción A: Clonar desde GitHub
 git clone https://github.com/startbootstrap/startbootstrap-sb-admin-2.git
 
 # Opción B: Descargar como ZIP
 # Ir a https://github.com/startbootstrap/startbootstrap-sb-admin-2
 # Descargar y extraer el archivo
+#
 ```
 
 ### **PASO 2: Estructura de Carpetas**

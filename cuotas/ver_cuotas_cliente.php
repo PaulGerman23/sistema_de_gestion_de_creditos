@@ -409,3 +409,107 @@ include '../includes/header.php';
                     <input type="hidden" name="id_cliente" value="<?php echo $id_cliente; ?>">
                     
                     <div class="form-group">
+                        <label for="modal_monto">Monto a Pagar:</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">$</span>
+                            </div>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="modal_monto" 
+                                   name="monto_pagado" 
+                                   step="0.01" 
+                                   readonly 
+                                   required>
+                        </div>
+                        <small class="form-text text-muted">Monto automático de la cuota</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modal_metodo">Método de Pago: <span class="text-danger">*</span></label>
+                        <select class="form-control" id="modal_metodo" name="metodo_pago" required>
+                            <option value="">-- Seleccione --</option>
+                            <option value="efectivo">Efectivo</option>
+                            <option value="transferencia">Transferencia Bancaria</option>
+                            <option value="tarjeta">Tarjeta de Crédito/Débito</option>
+                            <option value="cheque">Cheque</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modal_observaciones">Observaciones (opcional):</label>
+                        <textarea class="form-control" 
+                                  id="modal_observaciones" 
+                                  name="observaciones" 
+                                  rows="2"
+                                  placeholder="Ej: Número de comprobante, referencia, etc."></textarea>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Importante:</strong> Solo puede pagar la primera cuota pendiente (#<?php echo $primera_cuota_pendiente; ?>). Las demás estarán disponibles una vez pagada esta.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> Confirmar Pago
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<?php endif; ?>  
+
+<?php
+// JavaScript adicional
+$extra_js = '
+<script src="../vendor/datatables/jquery.dataTables.min.js"></script>
+<script src="../vendor/datatables/dataTables.bootstrap4.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Inicializar DataTable
+        $("#dataTable").DataTable({
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+            },
+            "order": [[ 1, "asc" ]], // Ordenar por número de cuota ascendente
+            "pageLength": 25
+        });
+        
+        // Búsqueda de clientes con AJAX
+        $("#buscar_cliente").on("keyup", function() {
+            var busqueda = $(this).val();
+            
+            if (busqueda.length >= 2) {
+                $.ajax({
+                    url: "buscar_cliente_ajax.php",
+                    method: "GET",
+                    data: { q: busqueda },
+                    success: function(data) {
+                        $("#resultados_busqueda").html(data);
+                    }
+                });
+            } else {
+                $("#resultados_busqueda").html("");
+            }
+        });
+    });
+    
+    // Función para abrir modal de pago rápido
+    function pagarCuota(id_cuota, monto) {
+        $("#modal_id_cuota").val(id_cuota);
+        $("#modal_monto").val(monto);
+        $("#modalPagoRapido").modal("show");
+    }
+</script>
+';
+
+include '../includes/footer.php';
+?>

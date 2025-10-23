@@ -10,7 +10,7 @@ $active_subpage = 'registrar_credito';
 $mensaje = '';
 $tipo_mensaje = '';
 
-if ($_POST) {
+if ($_POST && isset($_POST['registrar_credito'])) {
     $id_cliente = $_POST['id_cliente'];
     $monto_total = $_POST['monto_total'];
     $cantidad_cuotas = $_POST['cantidad_cuotas'];
@@ -51,8 +51,15 @@ if ($_POST) {
     }
 }
 
-// Listar clientes activos para seleccionar
-$clientes = $conn->query("SELECT id_cliente, nombre, apellido, dni FROM clientes WHERE estado = 'activo' ORDER BY nombre, apellido");
+// Cliente seleccionado desde búsqueda
+$cliente_seleccionado = null;
+if (isset($_GET['id_cliente'])) {
+    $id_cliente_get = $_GET['id_cliente'];
+    $stmt = $conn->prepare("SELECT * FROM clientes WHERE id_cliente = ? AND estado = 'activo'");
+    $stmt->bind_param("i", $id_cliente_get);
+    $stmt->execute();
+    $cliente_seleccionado = $stmt->get_result()->fetch_assoc();
+}
 
 include '../includes/header.php';
 ?>
@@ -60,8 +67,8 @@ include '../includes/header.php';
 <!-- Page Heading -->
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
     <h1 class="h3 mb-0 text-gray-800">Registrar Nuevo Crédito</h1>
-    <a href="ver_creditos.php" class="d-none d-sm-inline-block btn btn-sm btn-secondary shadow-sm">
-        <i class="fas fa-arrow-left fa-sm text-white-50"></i> Volver al Listado
+    <a href="ver_creditos.php" class="btn btn-sm btn-secondary shadow-sm">
+        <i class="fas fa-arrow-left fa-sm"></i> Volver al Listado
     </a>
 </div>
 
@@ -72,39 +79,86 @@ include '../includes/header.php';
     <?php if ($tipo_mensaje == 'success' && isset($id_credito)): ?>
         <br><a href="../cuotas/generar_plan_pago.php?id_credito=<?php echo $id_credito; ?>" class="alert-link">Ver plan de pago generado</a>
     <?php endif; ?>
-    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-        <span aria-hidden="true">&times;</span>
+    <button type="button" class="close" data-dismiss="alert">
+        <span>&times;</span>
     </button>
 </div>
 <?php endif; ?>
 
-<!-- Formulario de Registro -->
 <div class="row">
+    <!-- Formulario Principal -->
     <div class="col-lg-8">
+        
+        <!-- Paso 1: Buscar y Seleccionar Cliente -->
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Datos del Crédito</h6>
+            <div class="card-header py-3 bg-primary text-white">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-user"></i> Paso 1: Seleccionar Cliente
+                </h6>
+            </div>
+            <div class="card-body">
+                <?php if (!$cliente_seleccionado): ?>
+                <!-- Búsqueda de Cliente -->
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 
+                    Primero debe buscar y seleccionar un cliente para asignarle el crédito
+                </div>
+                
+                <form method="GET" action="" id="formBuscarCliente">
+                    <div class="form-group">
+                        <label for="buscar_cliente">Buscar Cliente:</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="buscar_cliente" 
+                               placeholder="Ingrese nombre, apellido o DNI del cliente..."
+                               autocomplete="off">
+                    </div>
+                    <div id="resultados_busqueda"></div>
+                </form>
+                
+                <?php else: ?>
+                <!-- Cliente Seleccionado -->
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> 
+                    Cliente seleccionado correctamente
+                </div>
+                
+                <div class="card border-left-success">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Nombre:</strong> <?php echo $cliente_seleccionado['nombre'] . ' ' . $cliente_seleccionado['apellido']; ?></p>
+                                <p class="mb-1"><strong>DNI:</strong> <?php echo $cliente_seleccionado['dni']; ?></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Teléfono:</strong> <?php echo $cliente_seleccionado['telefono'] ?: 'No registrado'; ?></p>
+                                <p class="mb-1"><strong>Ciudad:</strong> <?php echo $cliente_seleccionado['ciudad'] ?: 'No registrada'; ?></p>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <a href="registrar_credito.php" class="btn btn-sm btn-warning">
+                                <i class="fas fa-redo"></i> Cambiar Cliente
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <!-- Paso 2: Datos del Crédito -->
+        <?php if ($cliente_seleccionado): ?>
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 bg-success text-white">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-credit-card"></i> Paso 2: Datos del Crédito
+                </h6>
             </div>
             <div class="card-body">
                 <form method="POST" action="" id="formCredito">
+                    <input type="hidden" name="id_cliente" value="<?php echo $cliente_seleccionado['id_cliente']; ?>">
+                    <input type="hidden" name="registrar_credito" value="1">
                     
-                    <!-- Selección de Cliente -->
-                    <div class="form-group">
-                        <label for="id_cliente">Cliente <span class="text-danger">*</span></label>
-                        <select class="form-control" id="id_cliente" name="id_cliente" required>
-                            <option value="">Seleccionar cliente...</option>
-                            <?php while ($c = $clientes->fetch_assoc()): ?>
-                                <option value="<?php echo $c['id_cliente']; ?>" 
-                                        <?php echo (isset($_POST['id_cliente']) && $_POST['id_cliente'] == $c['id_cliente']) ? 'selected' : ''; ?>>
-                                    <?php echo $c['nombre'] . ' ' . $c['apellido'] . ' - DNI: ' . $c['dni']; ?>
-                                </option>
-                            <?php endwhile; ?>
-                        </select>
-                        <small class="form-text text-muted">Solo se muestran clientes con estado "Activo"</small>
-                    </div>
-
-                    <hr>
-
                     <!-- Descripción -->
                     <div class="form-group">
                         <label for="descripcion">Descripción del Crédito <span class="text-danger">*</span></label>
@@ -113,7 +167,6 @@ include '../includes/header.php';
                                id="descripcion" 
                                name="descripcion" 
                                placeholder="Ej: Crédito personal, Financiación de producto, etc."
-                               value="<?php echo isset($_POST['descripcion']) ? htmlspecialchars($_POST['descripcion']) : ''; ?>"
                                required>
                     </div>
 
@@ -133,7 +186,6 @@ include '../includes/header.php';
                                            placeholder="0.00" 
                                            step="0.01"
                                            min="0"
-                                           value="<?php echo isset($_POST['monto_total']) ? $_POST['monto_total'] : ''; ?>"
                                            required>
                                 </div>
                             </div>
@@ -148,9 +200,8 @@ include '../includes/header.php';
                                        placeholder="12" 
                                        min="1"
                                        max="120"
-                                       value="<?php echo isset($_POST['cantidad_cuotas']) ? $_POST['cantidad_cuotas'] : ''; ?>"
                                        required>
-                                <small class="form-text text-muted">Máximo 120 cuotas (10 años)</small>
+                                <small class="form-text text-muted">Máximo 120 cuotas</small>
                             </div>
                         </div>
                     </div>
@@ -167,7 +218,7 @@ include '../includes/header.php';
                                    step="0.01"
                                    min="0"
                                    max="100"
-                                   value="<?php echo isset($_POST['interes_anual']) ? $_POST['interes_anual'] : '0'; ?>">
+                                   value="0">
                             <div class="input-group-append">
                                 <span class="input-group-text">%</span>
                             </div>
@@ -193,7 +244,7 @@ include '../includes/header.php';
                                     <h4 class="text-info" id="total_pagar">$0.00</h4>
                                 </div>
                             </div>
-                            <small class="text-muted">* Los valores se actualizan automáticamente al cambiar los datos</small>
+                            <small class="text-muted">* Los valores se actualizan automáticamente</small>
                         </div>
                     </div>
 
@@ -201,13 +252,13 @@ include '../includes/header.php';
 
                     <!-- Botones -->
                     <div class="form-group mb-0">
-                        <button type="submit" class="btn btn-primary btn-icon-split">
+                        <button type="submit" class="btn btn-success btn-icon-split btn-lg">
                             <span class="icon text-white-50">
                                 <i class="fas fa-check"></i>
                             </span>
                             <span class="text">Registrar Crédito</span>
                         </button>
-                        <a href="ver_creditos.php" class="btn btn-secondary btn-icon-split">
+                        <a href="ver_creditos.php" class="btn btn-secondary btn-icon-split btn-lg">
                             <span class="icon text-white-50">
                                 <i class="fas fa-times"></i>
                             </span>
@@ -217,43 +268,41 @@ include '../includes/header.php';
                 </form>
             </div>
         </div>
+        <?php endif; ?>
+        
     </div>
     
     <!-- Sidebar con información -->
     <div class="col-lg-4">
-        <!-- Información del Crédito -->
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Información</h6>
             </div>
             <div class="card-body">
-                <p class="mb-2"><strong>Campos obligatorios (*)</strong></p>
-                <ul class="pl-3 mb-3">
-                    <li>Cliente</li>
-                    <li>Descripción</li>
-                    <li>Monto total</li>
-                    <li>Cantidad de cuotas</li>
-                </ul>
+                <h6 class="font-weight-bold mb-3">Proceso de Registro:</h6>
+                <ol class="pl-3 mb-3 small">
+                    <li>Buscar y seleccionar cliente</li>
+                    <li>Ingresar datos del crédito</li>
+                    <li>Ver simulación de cuota</li>
+                    <li>Confirmar y registrar</li>
+                </ol>
                 
                 <hr>
                 
                 <p class="mb-2"><strong>Cálculo de Cuotas:</strong></p>
                 <p class="small text-muted mb-3">
-                    Si especifica un interés anual, se aplicará la fórmula de cuota francesa. 
-                    Si es 0%, se divide el monto en partes iguales.
+                    Con interés se aplica cuota francesa. Sin interés se divide en partes iguales.
                 </p>
                 
                 <hr>
                 
                 <p class="mb-2"><strong>Generación Automática:</strong></p>
                 <p class="small text-muted mb-0">
-                    Al registrar el crédito, se generarán automáticamente todas las cuotas con 
-                    sus fechas de vencimiento correspondientes (una por mes).
+                    Al registrar se generan automáticamente todas las cuotas con fechas de vencimiento.
                 </p>
             </div>
         </div>
 
-        <!-- Ejemplo de Interés -->
         <div class="card shadow mb-4 border-left-info">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-info">
@@ -275,6 +324,24 @@ include '../includes/header.php';
 <?php
 $extra_js = '
 <script>
+    // Búsqueda de clientes con AJAX
+    $("#buscar_cliente").on("keyup", function() {
+        var busqueda = $(this).val();
+        
+        if (busqueda.length >= 2) {
+            $.ajax({
+                url: "buscar_cliente_ajax.php",
+                method: "GET",
+                data: { q: busqueda },
+                success: function(data) {
+                    $("#resultados_busqueda").html(data);
+                }
+            });
+        } else {
+            $("#resultados_busqueda").html("");
+        }
+    });
+    
     // Función para calcular la cuota estimada
     function calcularCuota() {
         var monto = parseFloat($("#monto_total").val()) || 0;
@@ -293,14 +360,17 @@ $extra_js = '
             totalPagar = monto;
         }
         
-        $("#cuota_estimada").text("$" + cuotaMensual.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,"));
-        $("#total_pagar").text("$" + totalPagar.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,"));
+        $("#cuota_estimada").text("$" + cuotaMensual.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-2"><strong>,"));
+        $("#total_pagar").text("$" + totalPagar.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-2"><strong>,"));
     }
     
-    // Calcular al cambiar cualquier campo
     $(document).ready(function() {
         $("#monto_total, #cantidad_cuotas, #interes_anual").on("input change", calcularCuota);
-        calcularCuota(); // Calcular inicial
+        calcularCuota();
     });
 </script>
 ';

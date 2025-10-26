@@ -353,4 +353,211 @@ INSERT INTO pagos (id_cuota, monto_pagado, fecha_pago, metodo_pago, observacione
 (60, 3500.00, DATE_SUB(CURDATE(), INTERVAL 2 MONTH), 'transferencia', NULL);
 
 -- Pagos de CRÉDITO 7 (Moroso grave)
-INSERT INTO pagos (id_cuota, monto_pagado, fecha
+INSERT INTO pagos (id_cuota, monto_pagado, fecha_pago, metodo_pago, observaciones) VALUES
+(67, 3600.00, DATE_SUB(CURDATE(), INTERVAL 11 MONTH), 'efectivo', NULL),
+(68, 3600.00, DATE_SUB(CURDATE(), INTERVAL 10 MONTH), 'transferencia', NULL),
+(69, 3600.00, DATE_SUB(CURDATE(), INTERVAL 9 MONTH), 'efectivo', NULL),
+(70, 3600.00, DATE_SUB(CURDATE(), INTERVAL 8 MONTH), 'transferencia', NULL),
+(71, 3600.00, DATE_SUB(CURDATE(), INTERVAL 7 MONTH), 'efectivo', NULL),
+(72, 3600.00, DATE_SUB(CURDATE(), INTERVAL 6 MONTH), 'transferencia', NULL),
+(73, 3600.00, DATE_SUB(CURDATE(), INTERVAL 5 MONTH), 'efectivo', NULL),
+(74, 3600.00, DATE_SUB(CURDATE(), INTERVAL 4 MONTH), 'transferencia', NULL);
+
+-- Pagos de CRÉDITO 8 (TOTALMENTE PAGADO)
+INSERT INTO pagos (id_cuota, monto_pagado, fecha_pago, metodo_pago, observaciones) VALUES
+(85, 3400.00, DATE_SUB(CURDATE(), INTERVAL 7 MONTH), 'efectivo', NULL),
+(86, 3400.00, DATE_SUB(CURDATE(), INTERVAL 6 MONTH), 'efectivo', NULL),
+(87, 3400.00, DATE_SUB(CURDATE(), INTERVAL 5 MONTH), 'transferencia', NULL),
+(88, 3400.00, DATE_SUB(CURDATE(), INTERVAL 4 MONTH), 'efectivo', NULL),
+(89, 3400.00, DATE_SUB(CURDATE(), INTERVAL 3 MONTH), 'transferencia', NULL),
+(90, 3400.00, DATE_SUB(CURDATE(), INTERVAL 2 MONTH), 'efectivo', 'Última cuota - Crédito cancelado exitosamente');
+
+-- Pagos de CRÉDITO 9 (TOTALMENTE PAGADO)
+INSERT INTO pagos (id_cuota, monto_pagado, fecha_pago, metodo_pago, observaciones) VALUES
+(91, 3650.00, DATE_SUB(CURDATE(), INTERVAL 11 MONTH), 'transferencia', NULL),
+(92, 3650.00, DATE_SUB(CURDATE(), INTERVAL 10 MONTH), 'efectivo', NULL),
+(93, 3650.00, DATE_SUB(CURDATE(), INTERVAL 9 MONTH), 'transferencia', NULL),
+(94, 3650.00, DATE_SUB(CURDATE(), INTERVAL 8 MONTH), 'efectivo', NULL),
+(95, 3650.00, DATE_SUB(CURDATE(), INTERVAL 7 MONTH), 'transferencia', NULL),
+(96, 3650.00, DATE_SUB(CURDATE(), INTERVAL 6 MONTH), 'efectivo', NULL),
+(97, 3650.00, DATE_SUB(CURDATE(), INTERVAL 5 MONTH), 'transferencia', NULL),
+(98, 3650.00, DATE_SUB(CURDATE(), INTERVAL 4 MONTH), 'efectivo', NULL),
+(99, 3650.00, DATE_SUB(CURDATE(), INTERVAL 3 MONTH), 'transferencia', NULL),
+(100, 3650.00, DATE_SUB(CURDATE(), INTERVAL 2 MONTH), 'efectivo', 'Cliente ejemplar - Crédito finalizado');
+
+-- Pagos de CRÉDITO 10
+INSERT INTO pagos (id_cuota, monto_pagado, fecha_pago, metodo_pago, observaciones) VALUES
+(101, 3150.00, DATE_SUB(CURDATE(), INTERVAL 8 MONTH), 'efectivo', NULL),
+(102, 3150.00, DATE_SUB(CURDATE(), INTERVAL 7 MONTH), 'transferencia', NULL),
+(103, 3150.00, DATE_SUB(CURDATE(), INTERVAL 6 MONTH), 'efectivo', NULL),
+(104, 3150.00, DATE_SUB(CURDATE(), INTERVAL 5 MONTH), 'transferencia', NULL),
+(105, 3150.00, DATE_SUB(CURDATE(), INTERVAL 4 MONTH), 'efectivo', NULL),
+(106, 3150.00, DATE_SUB(CURDATE(), INTERVAL 3 MONTH), 'transferencia', NULL),
+(107, 3150.00, DATE_SUB(CURDATE(), INTERVAL 2 MONTH), 'efectivo', NULL),
+(108, 3150.00, DATE_SUB(CURDATE(), INTERVAL 1 MONTH), 'transferencia', NULL),
+(109, 3150.00, CURDATE(), 'efectivo', 'Pago del día');
+
+-- Pago de CRÉDITO 11
+INSERT INTO pagos (id_cuota, monto_pagado, fecha_pago, metodo_pago, observaciones) VALUES
+(116, 2600.00, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 'transferencia', 'Primera cuota pagada');
+
+-- =====================================================
+-- 5. APLICAR MORAS A CUOTAS VENCIDAS
+-- =====================================================
+
+-- Moras CRÉDITO 5 (Moroso leve - 15 días de atraso)
+INSERT INTO moras (id_credito, id_cuota, monto_mora, fecha_aplicacion, dias_vencidos, pagada, observaciones) VALUES
+(5, 49, 130.00, DATE_SUB(CURDATE(), INTERVAL 14 DAY), 15, FALSE, 'Mora del 5% aplicada automáticamente');
+
+-- Moras CRÉDITO 6 (Moroso moderado - 45 y 15 días de atraso)
+INSERT INTO moras (id_credito, id_cuota, monto_mora, fecha_aplicacion, dias_vencidos, pagada, observaciones) VALUES
+(6, 61, 175.00, DATE_SUB(CURDATE(), INTERVAL 44 DAY), 45, FALSE, 'Mora del 5% - Primera cuota vencida'),
+(6, 62, 175.00, DATE_SUB(CURDATE(), INTERVAL 14 DAY), 15, FALSE, 'Mora del 5% - Segunda cuota vencida');
+
+-- Moras CRÉDITO 7 (Moroso grave - 90, 60 y 30 días de atraso)
+INSERT INTO moras (id_credito, id_cuota, monto_mora, fecha_aplicacion, dias_vencidos, pagada, observaciones) VALUES
+(7, 75, 180.00, DATE_SUB(CURDATE(), INTERVAL 89 DAY), 90, FALSE, 'Mora del 5% - Gravemente vencida'),
+(7, 76, 180.00, DATE_SUB(CURDATE(), INTERVAL 59 DAY), 60, FALSE, 'Mora del 5% - Moderadamente vencida'),
+(7, 77, 180.00, DATE_SUB(CURDATE(), INTERVAL 29 DAY), 30, FALSE, 'Mora del 5% - Primera mora');
+
+-- =====================================================
+-- 6. RESUMEN DE DATOS GENERADOS
+-- =====================================================
+
+SELECT '===== RESUMEN DE DATOS DE PRUEBA =====' as '  ';
+
+SELECT 
+    'CLIENTES' as 'TABLA',
+    COUNT(*) as 'TOTAL',
+    SUM(CASE WHEN estado = 'activo' THEN 1 ELSE 0 END) as 'ACTIVOS',
+    SUM(CASE WHEN estado = 'moroso' THEN 1 ELSE 0 END) as 'MOROSOS',
+    SUM(CASE WHEN estado = 'inactivo' THEN 1 ELSE 0 END) as 'INACTIVOS'
+FROM clientes;
+
+SELECT 
+    'CRÉDITOS' as 'TABLA',
+    COUNT(*) as 'TOTAL',
+    SUM(CASE WHEN estado = 'activo' THEN 1 ELSE 0 END) as 'ACTIVOS',
+    SUM(CASE WHEN estado = 'moroso' THEN 1 ELSE 0 END) as 'MOROSOS',
+    SUM(CASE WHEN estado = 'pagado' THEN 1 ELSE 0 END) as 'PAGADOS'
+FROM creditos;
+
+SELECT 
+    'CUOTAS' as 'TABLA',
+    COUNT(*) as 'TOTAL',
+    SUM(CASE WHEN estado = 'pendiente' THEN 1 ELSE 0 END) as 'PENDIENTES',
+    SUM(CASE WHEN estado = 'pagada' THEN 1 ELSE 0 END) as 'PAGADAS',
+    SUM(CASE WHEN estado = 'vencida' THEN 1 ELSE 0 END) as 'VENCIDAS'
+FROM cuotas;
+
+SELECT 
+    'PAGOS' as 'TABLA',
+    COUNT(*) as 'TOTAL',
+    SUM(monto_pagado) as 'MONTO_TOTAL'
+FROM pagos;
+
+SELECT 
+    'MORAS' as 'TABLA',
+    COUNT(*) as 'TOTAL',
+    SUM(monto_mora) as 'MONTO_TOTAL',
+    SUM(CASE WHEN pagada = 0 THEN 1 ELSE 0 END) as 'PENDIENTES'
+FROM moras;
+
+-- =====================================================
+-- 7. ALERTAS DE VENCIMIENTO GENERADAS
+-- =====================================================
+
+SELECT '===== ALERTAS DE VENCIMIENTO =====' as '  ';
+
+SELECT 
+    'Créditos que vencen en 7 días' as 'TIPO_ALERTA',
+    COUNT(*) as 'CANTIDAD'
+FROM creditos 
+WHERE fecha_vencimiento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+AND estado = 'activo';
+
+SELECT 
+    'Créditos que vencen en 15 días' as 'TIPO_ALERTA',
+    COUNT(*) as 'CANTIDAD'
+FROM creditos 
+WHERE fecha_vencimiento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 15 DAY)
+AND estado = 'activo';
+
+SELECT 
+    'Créditos que vencen en 30 días' as 'TIPO_ALERTA',
+    COUNT(*) as 'CANTIDAD'
+FROM creditos 
+WHERE fecha_vencimiento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+AND estado = 'activo';
+
+SELECT 
+    'Cuotas vencidas (acción inmediata)' as 'TIPO_ALERTA',
+    COUNT(*) as 'CANTIDAD',
+    SUM(monto_cuota) as 'MONTO_TOTAL'
+FROM cuotas 
+WHERE estado = 'vencida';
+
+-- =====================================================
+-- 8. MÉTODOS DE PAGO UTILIZADOS
+-- =====================================================
+
+SELECT '===== DISTRIBUCIÓN DE MÉTODOS DE PAGO =====' as '  ';
+
+SELECT 
+    metodo_pago as 'MÉTODO',
+    COUNT(*) as 'CANTIDAD',
+    SUM(monto_pagado) as 'MONTO_TOTAL',
+    ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM pagos)), 2) as 'PORCENTAJE_%'
+FROM pagos
+GROUP BY metodo_pago
+ORDER BY COUNT(*) DESC;
+
+-- =====================================================
+-- NOTAS IMPORTANTES
+-- =====================================================
+/*
+ESTE SCRIPT GENERA:
+
+✅ 15 Clientes con diferentes estados
+✅ 13 Créditos con todos los escenarios posibles
+✅ 124+ Cuotas distribuidas en:
+   - Pagadas: ~80 cuotas
+   - Pendientes: ~35 cuotas  
+   - Vencidas: ~9 cuotas
+
+✅ ALERTAS DE VENCIMIENTO:
+   - 1 crédito vence en 7 días (CRÍTICO)
+   - 1 crédito vence en 15 días (MEDIO)
+   - 1 crédito vence en 30 días (BAJO)
+
+✅ CRÉDITOS MOROSOS:
+   - 1 moroso LEVE (15 días atraso)
+   - 1 moroso MODERADO (45 días atraso)
+   - 1 moroso GRAVE (90 días atraso)
+
+✅ CRÉDITOS EXITOSOS:
+   - 2 créditos completamente pagados
+
+✅ 100+ PAGOS con diferentes métodos:
+   - Efectivo
+   - Transferencia
+   - Tarjeta
+   - Cheque
+
+✅ 6 MORAS aplicadas automáticamente
+
+PARA PROBAR TODAS LAS FUNCIONALIDADES:
+
+1. Dashboard: Ver estadísticas generales
+2. Alertas (7 días): Verás 1 crédito próximo
+3. Alertas (15 días): Verás 1-2 créditos
+4. Alertas (30 días): Verás 2-3 créditos
+5. Clientes Morosos: 3 clientes con diferentes niveles
+6. Aplicar Moras: 9 cuotas vencidas pendientes
+7. Historial de Pagos: 100+ transacciones
+8. Créditos Pagados: 2 exitosos
+9. Métodos de pago: Distribución completa
+
+FECHA BASE: Este script usa CURDATE() para que siempre
+funcione correctamente sin importar cuándo lo ejecutes.
+*/

@@ -457,7 +457,7 @@ $(document).ready(function() {
                     $("#resultados_busqueda").html(data);
                 },
                 error: function() {
-                    $("#resultados_busqueda").html("<div class=\"alert alert-danger\">Error al buscar clientes</div>");
+                    $("#resultados_busqueda").html("<div class=\'alert alert-danger\'>Error al buscar clientes</div>");
                 }
             });
         } else {
@@ -523,27 +523,10 @@ $(document).ready(function() {
             }
         }
         
-        $("#cuota_estimada").text("$" + cuotaMensual.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "    // Validar descripción
-    $validacion_desc = validarDescripcion($descripcion);
-    if ($validacion_desc !== true) {
-        $errores[] = $validacion_desc;
-    }
-    
-    //,"));
-        $("#total_pagar").text("$" + totalPagar.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "    // Validar descripción
-    $validacion_desc = validarDescripcion($descripcion);
-    if ($validacion_desc !== true) {
-        $errores[] = $validacion_desc;
-    }
-    
-    //,"));
-        $("#total_intereses").text("$" + totalIntereses.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "    // Validar descripción
-    $validacion_desc = validarDescripcion($descripcion);
-    if ($validacion_desc !== true) {
-        $errores[] = $validacion_desc;
-    }
-    
-    //,"));
+        // Formatear números con separador de miles
+        $("#cuota_estimada").text("$" + cuotaMensual.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,"));
+        $("#total_pagar").text("$" + totalPagar.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,"));
+        $("#total_intereses").text("$" + totalIntereses.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,"));
     }
     
     // Vincular eventos

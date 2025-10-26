@@ -1,199 +1,98 @@
 <?php
-include '../conexion.php';
-
-// Variables para el template
 $base_url = '../';
-$page_title = 'Gestión de Clientes';
+$page_title = 'Listar Clientes';
 $active_page = 'clientes';
 $active_subpage = 'listar_clientes';
 
-// CSS adicional
-$extra_css = '<link href="../vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">';
+// DataTables CSS
+$extra_css = '<link href="' . $base_url . 'vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">';
 
-// Filtros de búsqueda
-$filtro = $_GET['filtro'] ?? '';
-$estado_filtro = $_GET['estado'] ?? 'todos';
-$ciudad_filtro = $_GET['ciudad'] ?? '';
-
-// Consulta de clientes con filtros
-$sql = "SELECT * FROM clientes WHERE 1=1";
-$params = [];
-$types = "";
-
-if ($filtro) {
-    $sql .= " AND (nombre LIKE ? OR apellido LIKE ? OR dni LIKE ? OR telefono LIKE ? OR email LIKE ?)";
-    $filtro_param = "%$filtro%";
-    $params = array_merge($params, [$filtro_param, $filtro_param, $filtro_param, $filtro_param, $filtro_param]);
-    $types .= "sssss";
-}
-
-if ($estado_filtro != 'todos') {
-    $sql .= " AND estado = ?";
-    $params[] = $estado_filtro;
-    $types .= "s";
-}
-
-if ($ciudad_filtro) {
-    $sql .= " AND ciudad LIKE ?";
-    $ciudad_param = "%$ciudad_filtro%";
-    $params[] = $ciudad_param;
-    $types .= "s";
-}
-
-$sql .= " ORDER BY fecha_registro DESC";
-
-if ($params) {
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param($types, ...$params);
-    $stmt->execute();
-    $result = $stmt->get_result();
-} else {
-    $result = $conn->query($sql);
-}
-
-// Obtener ciudades para el filtro
-$ciudades = $conn->query("SELECT DISTINCT ciudad FROM clientes WHERE ciudad IS NOT NULL AND ciudad != '' ORDER BY ciudad");
-
-// Estadísticas
-$total_resultados = $result->num_rows;
-
+include '../conexion.php';
 include '../includes/header.php';
+
+// Obtener filtros
+$filtro_estado = isset($_GET['estado']) ? $_GET['estado'] : 'todos';
+$filtro_ciudad = isset($_GET['ciudad']) ? $_GET['ciudad'] : '';
+$busqueda = isset($_GET['buscar']) ? $_GET['buscar'] : '';
+
+// Construir consulta SQL con filtros
+$sql = "SELECT 
+            id_cliente,
+            nombre,
+            apellido,
+            CONCAT(nombre, ' ', apellido) as nombre_completo,
+            dni,
+            telefono,
+            ciudad,
+            email,
+            estado
+        FROM clientes 
+        WHERE 1=1";
+
+// Filtro por estado
+if ($filtro_estado !== 'todos') {
+    $sql .= " AND estado = '" . $conn->real_escape_string($filtro_estado) . "'";
+}
+
+// Filtro por ciudad
+if (!empty($filtro_ciudad)) {
+    $sql .= " AND ciudad LIKE '%" . $conn->real_escape_string($filtro_ciudad) . "%'";
+}
+
+// Filtro por búsqueda
+if (!empty($busqueda)) {
+    $sql .= " AND (
+        nombre LIKE '%" . $conn->real_escape_string($busqueda) . "%' OR
+        apellido LIKE '%" . $conn->real_escape_string($busqueda) . "%' OR
+        CONCAT(nombre, ' ', apellido) LIKE '%" . $conn->real_escape_string($busqueda) . "%' OR
+        dni LIKE '%" . $conn->real_escape_string($busqueda) . "%' OR
+        email LIKE '%" . $conn->real_escape_string($busqueda) . "%'
+    )";
+}
+
+$sql .= " ORDER BY nombre, apellido";
+$result = $conn->query($sql);
+
+// Obtener estadísticas
+$total_clientes = $conn->query("SELECT COUNT(*) as total FROM clientes")->fetch_assoc()['total'];
+$clientes_activos = $conn->query("SELECT COUNT(*) as total FROM clientes WHERE estado = 'activo'")->fetch_assoc()['total'];
+$clientes_morosos = $conn->query("SELECT COUNT(*) as total FROM clientes WHERE estado = 'moroso'")->fetch_assoc()['total'];
+$clientes_inactivos = $conn->query("SELECT COUNT(*) as total FROM clientes WHERE estado = 'inactivo'")->fetch_assoc()['total'];
 ?>
 
 <!-- Page Heading -->
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
-    <h1 class="h3 mb-0 text-gray-800">Gestión de Clientes</h1>
-    <a href="registrar_cliente.php" class="btn btn-sm btn-primary shadow-sm">
-        <i class="fas fa-plus fa-sm text-white-50"></i> Registrar Nuevo Cliente
+    <h1 class="h3 mb-0 text-gray-800">Listado de Clientes</h1>
+    <a href="registrar_cliente.php" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+        <i class="fas fa-user-plus fa-sm text-white-50"></i> Registrar Nuevo Cliente
     </a>
 </div>
 
-<!-- Filtros de Búsqueda -->
+<!-- Tarjetas de Estadísticas -->
 <div class="row mb-4">
-    <div class="col-lg-12">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">
-                    <i class="fas fa-search"></i> Buscar y Filtrar Clientes
-                </h6>
-            </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
             <div class="card-body">
-                <form method="GET" action="">
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="filtro">Búsqueda General</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="filtro" 
-                                   name="filtro" 
-                                   placeholder="Nombre, DNI, teléfono, email..."
-                                   value="<?php echo htmlspecialchars($filtro); ?>">
-                            <small class="form-text text-muted">Busca en múltiples campos</small>
-                        </div>
-                        
-                        <div class="col-md-3 mb-3">
-                            <label for="ciudad">Ciudad</label>
-                            <select class="form-control" id="ciudad" name="ciudad">
-                                <option value="">Todas las ciudades</option>
-                                <?php 
-                                $ciudades->data_seek(0);
-                                while ($ciudad = $ciudades->fetch_assoc()): 
-                                ?>
-                                    <option value="<?php echo $ciudad['ciudad']; ?>" 
-                                            <?php echo ($ciudad_filtro == $ciudad['ciudad']) ? 'selected' : ''; ?>>
-                                        <?php echo $ciudad['ciudad']; ?>
-                                    </option>
-                                <?php endwhile; ?>
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-3 mb-3">
-                            <label for="estado">Estado</label>
-                            <select class="form-control" id="estado" name="estado">
-                                <option value="todos" <?php echo ($estado_filtro == 'todos') ? 'selected' : ''; ?>>Todos</option>
-                                <option value="activo" <?php echo ($estado_filtro == 'activo') ? 'selected' : ''; ?>>Activo</option>
-                                <option value="inactivo" <?php echo ($estado_filtro == 'inactivo') ? 'selected' : ''; ?>>Inactivo</option>
-                                <option value="moroso" <?php echo ($estado_filtro == 'moroso') ? 'selected' : ''; ?>>Moroso</option>
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-2 mb-3">
-                            <label>&nbsp;</label>
-                            <button type="submit" class="btn btn-primary btn-block">
-                                <i class="fas fa-search"></i> Buscar
-                            </button>
-                        </div>
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Clientes</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $total_clientes; ?></div>
                     </div>
-                    
-                    <?php if ($filtro || $estado_filtro != 'todos' || $ciudad_filtro): ?>
-                    <div class="row">
-                        <div class="col-12">
-                            <a href="listar_clientes.php" class="btn btn-secondary btn-sm">
-                                <i class="fas fa-times"></i> Limpiar Filtros
-                            </a>
-                            <span class="ml-3 text-muted">
-                                <i class="fas fa-info-circle"></i> 
-                                Se encontraron <strong><?php echo $total_resultados; ?></strong> resultado(s)
-                            </span>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                </form>
-                
-                <!-- Búsquedas Rápidas -->
-                <hr>
-                <div class="row">
-                    <div class="col-md-3 mb-2">
-                        <a href="?estado=activo" class="btn btn-success btn-sm btn-block">
-                            <i class="fas fa-check-circle"></i> Clientes Activos
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-2">
-                        <a href="?estado=moroso" class="btn btn-danger btn-sm btn-block">
-                            <i class="fas fa-exclamation-triangle"></i> Clientes Morosos
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-2">
-                        <a href="?estado=inactivo" class="btn btn-warning btn-sm btn-block">
-                            <i class="fas fa-pause-circle"></i> Clientes Inactivos
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-2">
-                        <a href="listar_clientes.php" class="btn btn-info btn-sm btn-block">
-                            <i class="fas fa-list"></i> Ver Todos
-                        </a>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-
-<!-- Estadísticas Rápidas -->
-<?php if ($total_resultados > 0): ?>
-<div class="row mb-4">
-    <?php
-    // Contar por estado en los resultados
-    $result->data_seek(0);
-    $count_activo = 0;
-    $count_inactivo = 0;
-    $count_moroso = 0;
     
-    while ($row = $result->fetch_assoc()) {
-        if ($row['estado'] == 'activo') $count_activo++;
-        elseif ($row['estado'] == 'inactivo') $count_inactivo++;
-        elseif ($row['estado'] == 'moroso') $count_moroso++;
-    }
-    $result->data_seek(0);
-    ?>
-    
-    <div class="col-xl-4 col-md-6 mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
         <div class="card border-left-success shadow h-100 py-2">
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Activos</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $count_activo; ?></div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $clientes_activos; ?></div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-check-circle fa-2x text-gray-300"></i>
@@ -203,29 +102,13 @@ include '../includes/header.php';
         </div>
     </div>
     
-    <div class="col-xl-4 col-md-6 mb-4">
-        <div class="card border-left-warning shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Inactivos</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $count_inactivo; ?></div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-pause-circle fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-xl-4 col-md-6 mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
         <div class="card border-left-danger shadow h-100 py-2">
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Morosos</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $count_moroso; ?></div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $clientes_morosos; ?></div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
@@ -234,18 +117,110 @@ include '../includes/header.php';
             </div>
         </div>
     </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-secondary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">Inactivos</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $clientes_inactivos; ?></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-slash fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- Tabla de Resultados -->
+<!-- Filtros de Búsqueda -->
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">
-            Listado de Clientes (<?php echo $total_resultados; ?>)
-        </h6>
+        <h6 class="m-0 font-weight-bold text-primary">Buscar y Filtrar Clientes</h6>
     </div>
     <div class="card-body">
+        <form method="GET" action="">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="buscar">Búsqueda General</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="buscar" 
+                           name="buscar" 
+                           placeholder="Nombre, DNI, Email..." 
+                           value="<?php echo htmlspecialchars($busqueda); ?>">
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <label for="estado">Estado</label>
+                    <select class="form-control" id="estado" name="estado">
+                        <option value="todos" <?php echo $filtro_estado == 'todos' ? 'selected' : ''; ?>>Todos</option>
+                        <option value="activo" <?php echo $filtro_estado == 'activo' ? 'selected' : ''; ?>>Activos</option>
+                        <option value="moroso" <?php echo $filtro_estado == 'moroso' ? 'selected' : ''; ?>>Morosos</option>
+                        <option value="inactivo" <?php echo $filtro_estado == 'inactivo' ? 'selected' : ''; ?>>Inactivos</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <label for="ciudad">Ciudad</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="ciudad" 
+                           name="ciudad" 
+                           placeholder="Ciudad..." 
+                           value="<?php echo htmlspecialchars($filtro_ciudad); ?>">
+                </div>
+                
+                <div class="col-md-2 mb-3">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-search"></i> Buscar
+                    </button>
+                </div>
+            </div>
+            
+            <?php if (!empty($busqueda) || $filtro_estado != 'todos' || !empty($filtro_ciudad)): ?>
+            <div class="row">
+                <div class="col-12">
+                    <a href="listar_clientes.php" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-times"></i> Limpiar Filtros
+                    </a>
+                    <span class="text-muted ml-2">
+                        <i class="fas fa-info-circle"></i> 
+                        Mostrando <?php echo $result->num_rows; ?> de <?php echo $total_clientes; ?> clientes
+                    </span>
+                </div>
+            </div>
+            <?php endif; ?>
+        </form>
+    </div>
+</div>
+
+<!-- DataTales -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Clientes Registrados</h6>
+        <div class="btn-group" role="group">
+            <a href="?estado=activo" class="btn btn-sm btn-success <?php echo $filtro_estado == 'activo' ? 'active' : ''; ?>">
+                <i class="fas fa-check"></i> Activos
+            </a>
+            <a href="?estado=moroso" class="btn btn-sm btn-danger <?php echo $filtro_estado == 'moroso' ? 'active' : ''; ?>">
+                <i class="fas fa-exclamation-triangle"></i> Morosos
+            </a>
+            <a href="?estado=inactivo" class="btn btn-sm btn-secondary <?php echo $filtro_estado == 'inactivo' ? 'active' : ''; ?>">
+                <i class="fas fa-user-slash"></i> Inactivos
+            </a>
+            <a href="listar_clientes.php" class="btn btn-sm btn-primary <?php echo $filtro_estado == 'todos' ? 'active' : ''; ?>">
+                <i class="fas fa-list"></i> Todos
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <?php if ($result->num_rows > 0): ?>
         <div class="table-responsive">
-            <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
+            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -255,75 +230,40 @@ include '../includes/header.php';
                         <th>Ciudad</th>
                         <th>Email</th>
                         <th>Estado</th>
-                        <th>Fecha Registro</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php 
-                    $result->data_seek(0);
-                    while ($row = $result->fetch_assoc()): 
-                        $badge_class = 'secondary';
-                        if ($row['estado'] == 'activo') $badge_class = 'success';
-                        elseif ($row['estado'] == 'moroso') $badge_class = 'danger';
-                        elseif ($row['estado'] == 'inactivo') $badge_class = 'warning';
+                    <?php while($row = $result->fetch_assoc()): 
+                        $badge_class = $row['estado'] == 'activo' ? 'success' : ($row['estado'] == 'moroso' ? 'danger' : 'secondary');
                     ?>
                     <tr>
                         <td><?php echo $row['id_cliente']; ?></td>
-                        <td>
-                            <strong><?php echo $row['nombre'] . ' ' . $row['apellido']; ?></strong>
-                            <?php if ($row['direccion']): ?>
-                            <br><small class="text-muted">
-                                <i class="fas fa-map-marker-alt"></i> <?php echo $row['direccion']; ?>
-                            </small>
-                            <?php endif; ?>
-                        </td>
-                        <td><?php echo $row['dni']; ?></td>
-                        <td>
-                            <?php if ($row['telefono']): ?>
-                                <a href="tel:<?php echo $row['telefono']; ?>">
-                                    <i class="fas fa-phone"></i> <?php echo $row['telefono']; ?>
-                                </a>
-                            <?php else: ?>
-                                <span class="text-muted">-</span>
-                            <?php endif; ?>
-                        </td>
-                        <td><?php echo $row['ciudad'] ?: '-'; ?></td>
-                        <td>
-                            <?php if ($row['email']): ?>
-                                <a href="mailto:<?php echo $row['email']; ?>">
-                                    <i class="fas fa-envelope"></i> <?php echo $row['email']; ?>
-                                </a>
-                            <?php else: ?>
-                                <span class="text-muted">-</span>
-                            <?php endif; ?>
-                        </td>
+                        <td><strong><?php echo htmlspecialchars($row['nombre_completo']); ?></strong></td>
+                        <td><?php echo htmlspecialchars($row['dni']); ?></td>
+                        <td><?php echo htmlspecialchars($row['telefono'] ?? 'Sin teléfono'); ?></td>
+                        <td><?php echo htmlspecialchars($row['ciudad'] ?? 'Sin ciudad'); ?></td>
+                        <td><?php echo htmlspecialchars($row['email'] ?? 'Sin email'); ?></td>
                         <td>
                             <span class="badge badge-<?php echo $badge_class; ?>">
                                 <?php echo ucfirst($row['estado']); ?>
                             </span>
                         </td>
-                        <td><?php echo date('d/m/Y', strtotime($row['fecha_registro'])); ?></td>
                         <td class="text-center">
                             <a href="editar_cliente.php?id=<?php echo $row['id_cliente']; ?>" 
-                               class="btn btn-info btn-sm btn-circle" 
+                               class="btn btn-info btn-sm" 
                                title="Editar">
                                 <i class="fas fa-edit"></i>
                             </a>
                             <a href="historial_cliente.php?id=<?php echo $row['id_cliente']; ?>" 
-                               class="btn btn-primary btn-sm btn-circle" 
-                               title="Ver Historial">
+                               class="btn btn-warning btn-sm" 
+                               title="Historial">
                                 <i class="fas fa-history"></i>
                             </a>
-                            <a href="../cuotas/ver_cuotas_cliente.php?id_cliente=<?php echo $row['id_cliente']; ?>" 
-                               class="btn btn-warning btn-sm btn-circle" 
-                               title="Ver Cuotas">
-                                <i class="fas fa-calendar-alt"></i>
-                            </a>
                             <a href="eliminar_cliente.php?id=<?php echo $row['id_cliente']; ?>" 
-                               class="btn btn-danger btn-sm btn-circle" 
-                               title="Eliminar"
-                               onclick="return confirm('¿Está seguro de eliminar este cliente? Esta acción eliminará también todos sus créditos y cuotas.');">
+                               class="btn btn-danger btn-sm" 
+                               onclick="return confirm('¿Está seguro de eliminar este cliente? Se eliminarán también sus créditos y cuotas.');"
+                               title="Eliminar">
                                 <i class="fas fa-trash"></i>
                             </a>
                         </td>
@@ -332,55 +272,40 @@ include '../includes/header.php';
                 </tbody>
             </table>
         </div>
+        <?php else: ?>
+        <div class="alert alert-warning text-center" role="alert">
+            <i class="fas fa-search fa-3x mb-3"></i>
+            <h5>No se encontraron clientes</h5>
+            <p class="mb-0">No hay clientes que coincidan con los filtros seleccionados.</p>
+            <a href="listar_clientes.php" class="btn btn-primary mt-3">
+                <i class="fas fa-list"></i> Ver Todos los Clientes
+            </a>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
-
-<?php else: ?>
-
-<!-- Sin Resultados -->
-<div class="card shadow mb-4">
-    <div class="card-body text-center py-5">
-        <i class="fas fa-search fa-3x text-gray-300 mb-3"></i>
-        <h4 class="text-gray-600">
-            <?php if ($filtro || $estado_filtro != 'todos' || $ciudad_filtro): ?>
-                No se encontraron clientes con esos criterios
-            <?php else: ?>
-                No hay clientes registrados
-            <?php endif; ?>
-        </h4>
-        <p class="text-muted">
-            <?php if ($filtro || $estado_filtro != 'todos' || $ciudad_filtro): ?>
-                Intente con otros filtros o <a href="listar_clientes.php">vea todos los clientes</a>
-            <?php else: ?>
-                Comience registrando su primer cliente
-            <?php endif; ?>
-        </p>
-        <a href="registrar_cliente.php" class="btn btn-primary mt-3">
-            <i class="fas fa-plus"></i> Registrar Nuevo Cliente
-        </a>
-    </div>
-</div>
-
-<?php endif; ?>
 
 <?php
+// DataTables JS con configuración mejorada
 $extra_js = '
-<script src="../vendor/datatables/jquery.dataTables.min.js"></script>
-<script src="../vendor/datatables/dataTables.bootstrap4.min.js"></script>
+<script src="' . $base_url . 'vendor/datatables/jquery.dataTables.min.js"></script>
+<script src="' . $base_url . 'vendor/datatables/dataTables.bootstrap4.min.js"></script>
 <script>
-    $(document).ready(function() {
-        $("#dataTable").DataTable({
-            "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
-            },
-            "order": [[ 0, "desc" ]],
-            "pageLength": 25
-        });
+$(document).ready(function() {
+    $("#dataTable").DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+        },
+        "pageLength": 25,
+        "order": [[1, "asc"]], // Ordenar por nombre completo
+        "responsive": true,
+        "dom": "<\"row\"<\"col-sm-12 col-md-6\"l><\"col-sm-12 col-md-6\"f>>" +
+               "<\"row\"<\"col-sm-12\"tr>>" +
+               "<\"row\"<\"col-sm-12 col-md-5\"i><\"col-sm-12 col-md-7\"p>>"
     });
+});
 </script>
-
 ';
 
 include '../includes/footer.php';
-
 ?>

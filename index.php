@@ -65,8 +65,7 @@ $monto_total_creditos = $conn->query("SELECT SUM(monto_total) as total FROM cred
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Opciones:</h6>
                         <a class="collapse-item" href="clientes/listar_clientes.php">Listar Clientes</a>
-                        <a class="collapse-item" href="clientes/registrar_cliente.php">Registrar Cliente</a>
-                        <a class="collapse-item" href="clientes/buscar_cliente.php">Buscar Cliente</a>
+                        <a class="collapse-item" href="clientes/registrar_cliente.php">Registrar Cliente</a>                        
                     </div>
                 </div>
             </li>

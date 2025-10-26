@@ -62,9 +62,7 @@
                         <a class="collapse-item <?php echo ($active_subpage == 'listar_clientes') ? 'active' : ''; ?>" 
                            href="<?php echo $base_url; ?>clientes/listar_clientes.php">Listar Clientes</a>
                         <a class="collapse-item <?php echo ($active_subpage == 'registrar_cliente') ? 'active' : ''; ?>" 
-                           href="<?php echo $base_url; ?>clientes/registrar_cliente.php">Registrar Cliente</a>
-                        <a class="collapse-item <?php echo ($active_subpage == 'buscar_cliente') ? 'active' : ''; ?>" 
-                           href="<?php echo $base_url; ?>clientes/buscar_cliente.php">Buscar Cliente</a>
+                           href="<?php echo $base_url; ?>clientes/registrar_cliente.php">Registrar Cliente</a>                        
                     </div>
                 </div>
             </li>

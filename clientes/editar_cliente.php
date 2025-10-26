@@ -9,13 +9,18 @@ $active_subpage = 'listar_clientes';
 
 $mensaje = '';
 $tipo_mensaje = '';
+$errores = [];
 
 $id_cliente = $_GET['id'] ?? 0;
 
-if (!$id_cliente) {
+// Validar que el ID sea numérico y positivo
+if (!is_numeric($id_cliente) || $id_cliente <= 0) {
     header("Location: listar_clientes.php");
     exit;
 }
+
+// Incluir funciones de validación
+include 'funciones_validacion.php';
 
 // Obtener datos del cliente
 $stmt = $conn->prepare("SELECT * FROM clientes WHERE id_cliente = ?");
@@ -30,41 +35,103 @@ if (!$cliente) {
 
 // Procesar actualización
 if ($_POST) {
-    $nombre = $_POST['nombre'];
-    $apellido = $_POST['apellido'];
-    $dni = $_POST['dni'];
-    $telefono = $_POST['telefono'];
-    $direccion = $_POST['direccion'];
-    $ciudad = $_POST['ciudad'];
-    $email = $_POST['email'];
+    // Sanitizar datos
+    $nombre = trim($_POST['nombre']);
+    $apellido = trim($_POST['apellido']);
+    $dni_raw = trim($_POST['dni']);
+    $telefono_raw = trim($_POST['telefono'] ?? '');
+    $direccion = trim($_POST['direccion'] ?? '');
+    $ciudad = trim($_POST['ciudad'] ?? '');
+    $email = trim($_POST['email'] ?? '');
     $estado = $_POST['estado'];
-
-    // Validar que el DNI no esté duplicado (excepto el actual)
-    $stmt = $conn->prepare("SELECT id_cliente FROM clientes WHERE dni = ? AND id_cliente != ?");
-    $stmt->bind_param("si", $dni, $id_cliente);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($result->num_rows > 0) {
-        $mensaje = "Error: Ya existe otro cliente con ese DNI.";
-        $tipo_mensaje = "danger";
+    
+    // Validar estado
+    $estados_validos = ['activo', 'inactivo', 'moroso'];
+    if (!in_array($estado, $estados_validos)) {
+        $errores[] = "El estado seleccionado no es válido";
+    }
+    
+    // Validar nombre
+    $validacion_nombre = validarNombre($nombre, 'nombre');
+    if ($validacion_nombre !== true) {
+        $errores[] = $validacion_nombre;
+    }
+    
+    // Validar apellido
+    $validacion_apellido = validarNombre($apellido, 'apellido');
+    if ($validacion_apellido !== true) {
+        $errores[] = $validacion_apellido;
+    }
+    
+    // Validar DNI
+    $validacion_dni = validarDNI($dni_raw);
+    if (is_string($validacion_dni) && strlen($validacion_dni) <= 8) {
+        $dni = $validacion_dni;
     } else {
-        $stmt = $conn->prepare("UPDATE clientes SET nombre=?, apellido=?, dni=?, telefono=?, direccion=?, ciudad=?, email=?, estado=? WHERE id_cliente=?");
-        $stmt->bind_param("ssssssssi", $nombre, $apellido, $dni, $telefono, $direccion, $ciudad, $email, $estado, $id_cliente);
-        
-        if ($stmt->execute()) {
-            $mensaje = "¡Cliente actualizado correctamente!";
-            $tipo_mensaje = "success";
-            
-            // Recargar datos actualizados
-            $stmt = $conn->prepare("SELECT * FROM clientes WHERE id_cliente = ?");
-            $stmt->bind_param("i", $id_cliente);
-            $stmt->execute();
-            $cliente = $stmt->get_result()->fetch_assoc();
-        } else {
-            $mensaje = "Error al actualizar el cliente: " . $stmt->error;
+        $errores[] = $validacion_dni;
+    }
+    
+    // Validar teléfono
+    $validacion_telefono = validarTelefono($telefono_raw);
+    if ($validacion_telefono === true || strlen($validacion_telefono) >= 10) {
+        $telefono = $validacion_telefono === true ? '' : $validacion_telefono;
+    } else {
+        $errores[] = $validacion_telefono;
+    }
+    
+    // Validar email
+    $validacion_email = validarEmail($email);
+    if ($validacion_email !== true) {
+        $errores[] = $validacion_email;
+    }
+    
+    // Validar ciudad
+    $validacion_ciudad = validarCiudad($ciudad);
+    if ($validacion_ciudad !== true) {
+        $errores[] = $validacion_ciudad;
+    }
+    
+    // Validar dirección
+    if (strlen($direccion) > 255) {
+        $errores[] = "La dirección no puede tener más de 255 caracteres";
+    }
+    
+    // Si no hay errores, verificar DNI duplicado
+    if (empty($errores)) {
+        $stmt = $conn->prepare("SELECT id_cliente FROM clientes WHERE dni = ? AND id_cliente != ?");
+        $stmt->bind_param("si", $dni, $id_cliente);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows > 0) {
+            $errores[] = "Ya existe otro cliente con ese DNI";
             $tipo_mensaje = "danger";
+        } else {
+            // Capitalizar
+            $nombre = ucwords(strtolower($nombre));
+            $apellido = ucwords(strtolower($apellido));
+            $ciudad = ucwords(strtolower($ciudad));
+            
+            // Actualizar cliente
+            $stmt = $conn->prepare("UPDATE clientes SET nombre=?, apellido=?, dni=?, telefono=?, direccion=?, ciudad=?, email=?, estado=? WHERE id_cliente=?");
+            $stmt->bind_param("ssssssssi", $nombre, $apellido, $dni, $telefono, $direccion, $ciudad, $email, $estado, $id_cliente);
+            
+            if ($stmt->execute()) {
+                $mensaje = "¡Cliente actualizado correctamente!";
+                $tipo_mensaje = "success";
+                
+                // Recargar datos actualizados
+                $stmt = $conn->prepare("SELECT * FROM clientes WHERE id_cliente = ?");
+                $stmt->bind_param("i", $id_cliente);
+                $stmt->execute();
+                $cliente = $stmt->get_result()->fetch_assoc();
+            } else {
+                $errores[] = "Error al actualizar el cliente en la base de datos";
+                $tipo_mensaje = "danger";
+            }
         }
+    } else {
+        $tipo_mensaje = "danger";
     }
 }
 
@@ -89,6 +156,21 @@ include '../includes/header.php';
 </div>
 <?php endif; ?>
 
+<!-- Errores de validación -->
+<?php if (!empty($errores)): ?>
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <h5><i class="fas fa-exclamation-triangle"></i> Se encontraron los siguientes errores:</h5>
+    <ul class="mb-0">
+        <?php foreach ($errores as $error): ?>
+            <li><?php echo htmlspecialchars($error); ?></li>
+        <?php endforeach; ?>
+    </ul>
+    <button type="button" class="close" data-dismiss="alert">
+        <span>&times;</span>
+    </button>
+</div>
+<?php endif; ?>
+
 <!-- Formulario de Edición -->
 <div class="row">
     <div class="col-lg-8">
@@ -99,7 +181,7 @@ include '../includes/header.php';
                 </h6>
             </div>
             <div class="card-body">
-                <form method="POST" action="">
+                <form method="POST" action="" id="formEditarCliente">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -109,6 +191,7 @@ include '../includes/header.php';
                                        id="nombre" 
                                        name="nombre" 
                                        value="<?php echo htmlspecialchars($cliente['nombre']); ?>"
+                                       pattern="[a-záéíóúñüA-ZÁÉÍÓÚÑÜ\s]+"
                                        required>
                             </div>
                         </div>
@@ -120,6 +203,7 @@ include '../includes/header.php';
                                        id="apellido" 
                                        name="apellido" 
                                        value="<?php echo htmlspecialchars($cliente['apellido']); ?>"
+                                       pattern="[a-záéíóúñüA-ZÁÉÍÓÚÑÜ\s]+"
                                        required>
                             </div>
                         </div>
@@ -134,7 +218,10 @@ include '../includes/header.php';
                                        id="dni" 
                                        name="dni" 
                                        value="<?php echo htmlspecialchars($cliente['dni']); ?>"
+                                       pattern="\d{7,8}"
+                                       maxlength="8"
                                        required>
+                                <small class="form-text text-muted">Debe ser único en el sistema</small>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -144,7 +231,8 @@ include '../includes/header.php';
                                        class="form-control" 
                                        id="telefono" 
                                        name="telefono" 
-                                       value="<?php echo htmlspecialchars($cliente['telefono']); ?>">
+                                       value="<?php echo htmlspecialchars($cliente['telefono']); ?>"
+                                       pattern="[\d\s\-\(\)\+]{10,13}">
                             </div>
                         </div>
                     </div>
@@ -155,7 +243,8 @@ include '../includes/header.php';
                                class="form-control" 
                                id="direccion" 
                                name="direccion" 
-                               value="<?php echo htmlspecialchars($cliente['direccion']); ?>">
+                               value="<?php echo htmlspecialchars($cliente['direccion']); ?>"
+                               maxlength="255">
                     </div>
                     
                     <div class="row">
@@ -166,7 +255,9 @@ include '../includes/header.php';
                                        class="form-control" 
                                        id="ciudad" 
                                        name="ciudad" 
-                                       value="<?php echo htmlspecialchars($cliente['ciudad']); ?>">
+                                       value="<?php echo htmlspecialchars($cliente['ciudad']); ?>"
+                                       pattern="[a-záéíóúñüA-ZÁÉÍÓÚÑÜ\s\.\-]+"
+                                       maxlength="100">
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -176,7 +267,8 @@ include '../includes/header.php';
                                        class="form-control" 
                                        id="email" 
                                        name="email" 
-                                       value="<?php echo htmlspecialchars($cliente['email']); ?>">
+                                       value="<?php echo htmlspecialchars($cliente['email']); ?>"
+                                       pattern="[a-zA-Z0-9._%+-]+@(gmail|hotmail|yahoo|outlook)\.(com|com\.ar|ar|es)">
                             </div>
                         </div>
                     </div>
@@ -188,6 +280,9 @@ include '../includes/header.php';
                             <option value="inactivo" <?php echo ($cliente['estado'] == 'inactivo') ? 'selected' : ''; ?>>Inactivo</option>
                             <option value="moroso" <?php echo ($cliente['estado'] == 'moroso') ? 'selected' : ''; ?>>Moroso</option>
                         </select>
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle"></i> El cambio de estado no afectará los créditos existentes
+                        </small>
                     </div>
                     
                     <hr>
@@ -236,7 +331,7 @@ include '../includes/header.php';
                 <hr>
                 
                 <p class="small text-muted mb-0">
-                    <strong>Nota:</strong> Los cambios en el estado del cliente no afectarán sus créditos existentes.
+                    <strong>Nota:</strong> Todos los cambios se validarán antes de guardar. Asegúrese de que los datos sean correctos.
                 </p>
             </div>
         </div>
@@ -263,5 +358,57 @@ include '../includes/header.php';
 </div>
 
 <?php
+$extra_js = '
+<script>
+$(document).ready(function() {
+    // Las mismas validaciones que en registrar_cliente.php
+    $("#dni").on("input", function() {
+        var dni = $(this).val().replace(/[^\d]/g, "");
+        $(this).val(dni);
+        
+        if (dni.length >= 7 && dni.length <= 8) {
+            $(this).removeClass("is-invalid").addClass("is-valid");
+        } else if (dni.length > 0) {
+            $(this).addClass("is-invalid");
+        }
+    });
+    
+    $("#nombre, #apellido").on("input", function() {
+        var valor = $(this).val();
+        var regex = /^[a-záéíóúñüA-ZÁÉÍÓÚÑÜ\s]*$/;
+        
+        if (!regex.test(valor)) {
+            var valorLimpio = valor.replace(/[^a-záéíóúñüA-ZÁÉÍÓÚÑÜ\s]/g, "");
+            $(this).val(valorLimpio);
+        }
+    });
+    
+    $("#email").on("blur", function() {
+        var email = $(this).val();
+        if (email.length === 0) {
+            $(this).removeClass("is-invalid is-valid");
+            return;
+        }
+        
+        var dominiosValidos = ["gmail.com", "hotmail.com", "hotmail.ar", "yahoo.com", "yahoo.com.ar", "outlook.com", "outlook.es"];
+        var partes = email.split("@");
+        
+        if (partes.length === 2 && dominiosValidos.includes(partes[1].toLowerCase())) {
+            $(this).removeClass("is-invalid").addClass("is-valid");
+        } else {
+            $(this).removeClass("is-valid").addClass("is-invalid");
+        }
+    });
+    
+    $("#formEditarCliente").on("submit", function(e) {
+        if (!confirm("¿Confirma la actualización de los datos del cliente?")) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
+';
+
 include '../includes/footer.php';
 ?>

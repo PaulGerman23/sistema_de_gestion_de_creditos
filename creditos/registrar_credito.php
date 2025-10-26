@@ -189,57 +189,166 @@ include '../includes/header.php';
 
 <div class="row">
     <!-- Formulario Principal -->
-    <div class="col-lg-8">
-        
-        <!-- Paso 1: Seleccionar Cliente -->
+    <div class="col-lg-8">        
+        <!-- Paso 1: Seleccionar Cliente -->   
         <div class="card shadow mb-4">
             <div class="card-header py-3 bg-primary text-white">
                 <h6 class="m-0 font-weight-bold">
-                    <i class="fas fa-user"></i> Paso 1: Seleccionar Cliente
+                    <i class="fas fa-user-check"></i> Paso 1: Seleccionar Cliente
                 </h6>
             </div>
             <div class="card-body">
                 <?php if (!$cliente_seleccionado): ?>
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> 
-                    Busque y seleccione un cliente <strong>ACTIVO</strong> para asignarle el crédito
+                <div class="alert alert-info border-left-info">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle fa-2x mr-3"></i>
+                        <div>
+                            <h6 class="mb-1">Busque y seleccione un cliente</h6>
+                            <small>Solo se mostrarán clientes en estado <strong>ACTIVO</strong>. Puede buscar por nombre, apellido, DNI, email o teléfono.</small>
+                        </div>
+                    </div>
                 </div>
                 
                 <form method="GET" action="" id="formBuscarCliente">
                     <div class="form-group">
-                        <label for="buscar_cliente">Buscar Cliente:</label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="buscar_cliente" 
-                               placeholder="Ingrese nombre, apellido o DNI del cliente..."
-                               autocomplete="off"
-                               minlength="2">
-                        <small class="form-text text-muted">Mínimo 2 caracteres para buscar</small>
+                        <label for="buscar_cliente" class="font-weight-bold">
+                            <i class="fas fa-search"></i> Buscar Cliente:
+                        </label>
+                        <div class="input-group input-group-lg">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text bg-primary text-white">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                            </div>
+                            <input type="text" 
+                                class="form-control form-control-lg" 
+                                id="buscar_cliente" 
+                                placeholder="Escriba nombre, apellido, DNI, email o teléfono..."
+                                autocomplete="off"
+                                autofocus>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button" id="limpiar_busqueda">
+                                    <i class="fas fa-times"></i> Limpiar
+                                </button>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">
+                            <i class="fas fa-lightbulb text-warning"></i> 
+                            Mínimo 2 caracteres. Los resultados aparecen automáticamente mientras escribe.
+                        </small>
                     </div>
+                    
+                    <!-- Spinner de carga -->
+                    <div id="loading_spinner" class="text-center my-3" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Buscando...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Buscando clientes...</p>
+                    </div>
+                    
+                    <!-- Resultados de búsqueda -->
                     <div id="resultados_busqueda"></div>
                 </form>
                 
-                <?php else: ?>
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> 
-                    Cliente seleccionado correctamente
+                <!-- Accesos rápidos -->
+                <div class="mt-4 pt-3 border-top">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-bolt"></i> Accesos Rápidos:
+                    </h6>
+                    <a href="../clientes/ver_clientes.php" class="btn btn-outline-primary btn-sm mr-2 mb-2">
+                        <i class="fas fa-users"></i> Ver Todos los Clientes
+                    </a>
+                    <a href="../clientes/registrar_cliente.php" class="btn btn-outline-success btn-sm mb-2">
+                        <i class="fas fa-user-plus"></i> Registrar Nuevo Cliente
+                    </a>
                 </div>
                 
-                <div class="card border-left-success">
+                <?php else: ?>
+                <!-- Cliente seleccionado -->
+                <div class="alert alert-success border-left-success">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle fa-2x mr-3"></i>
+                        <div>
+                            <h6 class="mb-0">Cliente seleccionado correctamente</h6>
+                            <small>Ahora puede continuar con los datos del crédito</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card border-success shadow-sm">
+                    <div class="card-header bg-success text-white py-2">
+                        <h6 class="m-0">
+                            <i class="fas fa-user-circle"></i> Información del Cliente
+                        </h6>
+                    </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6">
-                                <p class="mb-1"><strong>Nombre:</strong> <?php echo htmlspecialchars($cliente_seleccionado['nombre'] . ' ' . $cliente_seleccionado['apellido']); ?></p>
-                                <p class="mb-1"><strong>DNI:</strong> <?php echo htmlspecialchars($cliente_seleccionado['dni']); ?></p>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-user fa-fw text-primary mr-2 mt-1"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Nombre Completo</small>
+                                        <strong><?php echo htmlspecialchars($cliente_seleccionado['nombre'] . ' ' . $cliente_seleccionado['apellido']); ?></strong>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <p class="mb-1"><strong>Teléfono:</strong> <?php echo htmlspecialchars($cliente_seleccionado['telefono'] ?: 'No registrado'); ?></p>
-                                <p class="mb-1"><strong>Ciudad:</strong> <?php echo htmlspecialchars($cliente_seleccionado['ciudad'] ?: 'No registrada'); ?></p>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-id-card fa-fw text-info mr-2 mt-1"></i>
+                                    <div>
+                                        <small class="text-muted d-block">DNI</small>
+                                        <strong><?php echo htmlspecialchars($cliente_seleccionado['dni']); ?></strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-phone fa-fw text-success mr-2 mt-1"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Teléfono</small>
+                                        <strong><?php echo htmlspecialchars($cliente_seleccionado['telefono'] ?: 'No registrado'); ?></strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-envelope fa-fw text-warning mr-2 mt-1"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Email</small>
+                                        <strong><?php echo htmlspecialchars($cliente_seleccionado['email'] ?: 'No registrado'); ?></strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-map-marker-alt fa-fw text-danger mr-2 mt-1"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Ciudad</small>
+                                        <strong><?php echo htmlspecialchars($cliente_seleccionado['ciudad'] ?: 'No registrada'); ?></strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-home fa-fw text-secondary mr-2 mt-1"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Dirección</small>
+                                        <strong><?php echo htmlspecialchars($cliente_seleccionado['direccion'] ?: 'No registrada'); ?></strong>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="mt-2">
-                            <a href="registrar_credito.php" class="btn btn-sm btn-warning">
-                                <i class="fas fa-redo"></i> Cambiar Cliente
+                        
+                        <hr class="my-3">
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="registrar_credito.php" class="btn btn-warning btn-sm">
+                                <i class="fas fa-exchange-alt"></i> Cambiar Cliente
+                            </a>
+                            <a href="../clientes/editar_cliente.php?id=<?php echo $cliente_seleccionado['id_cliente']; ?>" 
+                            class="btn btn-outline-primary btn-sm" 
+                            target="_blank">
+                                <i class="fas fa-eye"></i> Ver Perfil Completo
                             </a>
                         </div>
                     </div>
@@ -444,34 +553,89 @@ include '../includes/header.php';
 $extra_js = '
 <script>
 $(document).ready(function() {
-    // Búsqueda AJAX de clientes
+    var timeoutId;
+    
+    // Búsqueda AJAX de clientes con delay
     $("#buscar_cliente").on("keyup", function() {
-        var busqueda = $(this).val();
+        var busqueda = $(this).val().trim();
+        
+        // Limpiar timeout anterior
+        clearTimeout(timeoutId);
         
         if (busqueda.length >= 2) {
-            $.ajax({
-                url: "buscar_cliente_ajax.php",
-                method: "GET",
-                data: { q: busqueda },
-                success: function(data) {
-                    $("#resultados_busqueda").html(data);
-                },
-                error: function() {
-                    $("#resultados_busqueda").html("<div class=\'alert alert-danger\'>Error al buscar clientes</div>");
-                }
-            });
+            // Mostrar spinner
+            $("#loading_spinner").show();
+            $("#resultados_busqueda").html("");
+            
+            // Delay de 300ms antes de buscar
+            timeoutId = setTimeout(function() {
+                $.ajax({
+                    url: "buscar_cliente_ajax.php",
+                    method: "GET",
+                    data: { q: busqueda },
+                    success: function(data) {
+                        $("#loading_spinner").hide();
+                        $("#resultados_busqueda").html(data);
+                        
+                        // Animar entrada de resultados
+                        $("#resultados_busqueda").hide().fadeIn(300);
+                    },
+                    error: function(xhr, status, error) {
+                        $("#loading_spinner").hide();
+                        var errorHtml = \'<div class="alert alert-danger">\' +
+                            \'<i class="fas fa-exclamation-triangle"></i> \' +
+                            \'<strong>Error al buscar clientes.</strong><br>\' +
+                            \'Por favor, intente nuevamente. Si el error persiste, contacte al administrador.\' +
+                            \'</div>\';
+                        $("#resultados_busqueda").html(errorHtml);
+                        console.error("Error AJAX:", error);
+                    }
+                });
+            }, 300);
+            
+        } else if (busqueda.length > 0) {
+            // Menos de 2 caracteres
+            $("#loading_spinner").hide();
+            var warningHtml = \'<div class="alert alert-warning">\' +
+                \'<i class="fas fa-info-circle"></i> \' +
+                \'Por favor ingrese al menos 2 caracteres para buscar\' +
+                \'</div>\';
+            $("#resultados_busqueda").html(warningHtml);
         } else {
+            // Campo vacío
+            $("#loading_spinner").hide();
             $("#resultados_busqueda").html("");
         }
     });
     
+    // Botón limpiar búsqueda
+    $("#limpiar_busqueda").on("click", function() {
+        $("#buscar_cliente").val("").focus();
+        $("#resultados_busqueda").html("");
+        $("#loading_spinner").hide();
+    });
+    
+    // Limpiar con Escape
+    $("#buscar_cliente").on("keydown", function(e) {
+        if (e.key === "Escape") {
+            $(this).val("");
+            $("#resultados_busqueda").html("");
+            $("#loading_spinner").hide();
+        }
+    });
+    
+    // Focus automático al cargar (si no hay cliente seleccionado)
+    if ($("#buscar_cliente").length) {
+        $("#buscar_cliente").focus();
+    }
+    
     // Validar monto
     $("#monto_total").on("input", function() {
         var monto = parseFloat($(this).val());
-        if (monto < 100) {
-            $(this).addClass("is-invalid");
+        if (isNaN(monto) || monto < 100) {
+            $(this).addClass("is-invalid").removeClass("is-valid");
         } else if (monto > 10000000) {
-            $(this).addClass("is-invalid");
+            $(this).addClass("is-invalid").removeClass("is-valid");
         } else {
             $(this).removeClass("is-invalid").addClass("is-valid");
         }
@@ -481,8 +645,8 @@ $(document).ready(function() {
     // Validar cuotas
     $("#cantidad_cuotas").on("input", function() {
         var cuotas = parseInt($(this).val());
-        if (cuotas < 1 || cuotas > 120) {
-            $(this).addClass("is-invalid");
+        if (isNaN(cuotas) || cuotas < 1 || cuotas > 120) {
+            $(this).addClass("is-invalid").removeClass("is-valid");
         } else {
             $(this).removeClass("is-invalid").addClass("is-valid");
         }
@@ -492,15 +656,15 @@ $(document).ready(function() {
     // Validar interés
     $("#interes_anual").on("input", function() {
         var interes = parseFloat($(this).val());
-        if (interes < 0 || interes > 100) {
-            $(this).addClass("is-invalid");
+        if (isNaN(interes) || interes < 0 || interes > 100) {
+            $(this).addClass("is-invalid").removeClass("is-valid");
         } else {
             $(this).removeClass("is-invalid").addClass("is-valid");
         }
         calcularCuota();
     });
     
-    // Calcular cuota
+    // Calcular cuota mensual
     function calcularCuota() {
         var monto = parseFloat($("#monto_total").val()) || 0;
         var cuotas = parseInt($("#cantidad_cuotas").val()) || 1;
@@ -512,56 +676,94 @@ $(document).ready(function() {
         
         if (monto > 0 && cuotas > 0) {
             if (interes > 0) {
+                // Fórmula de cuota francesa
                 var interesMensual = (interes / 12) / 100;
-                cuotaMensual = monto * (interesMensual * Math.pow(1 + interesMensual, cuotas)) / (Math.pow(1 + interesMensual, cuotas) - 1);
+                cuotaMensual = monto * (interesMensual * Math.pow(1 + interesMensual, cuotas)) / 
+                              (Math.pow(1 + interesMensual, cuotas) - 1);
                 totalPagar = cuotaMensual * cuotas;
                 totalIntereses = totalPagar - monto;
             } else {
+                // Sin interés
                 cuotaMensual = monto / cuotas;
                 totalPagar = monto;
                 totalIntereses = 0;
             }
         }
         
-        // Formatear números con separador de miles
-        $("#cuota_estimada").text("$" + cuotaMensual.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,"));
-        $("#total_pagar").text("$" + totalPagar.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,"));
-        $("#total_intereses").text("$" + totalIntereses.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,"));
+        // Formatear y mostrar
+        $("#cuota_estimada").text(formatMoney(cuotaMensual));
+        $("#total_pagar").text(formatMoney(totalPagar));
+        $("#total_intereses").text(formatMoney(totalIntereses));
+        
+        // Cambiar color según intereses
+        if (totalIntereses > 0) {
+            $("#total_intereses").removeClass("text-success").addClass("text-warning");
+        } else {
+            $("#total_intereses").removeClass("text-warning").addClass("text-success");
+        }
     }
     
-    // Vincular eventos
+    // Formatear dinero
+    function formatMoney(amount) {
+        return "$" + amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+    }
+    
+    // Vincular eventos de cálculo
     $("#monto_total, #cantidad_cuotas, #interes_anual").on("input change", calcularCuota);
     
-    // Validar formulario
+    // Validar formulario antes de enviar
     $("#formCredito").on("submit", function(e) {
+        // Verificar checkbox de confirmación
         if (!$("#confirmar_datos").is(":checked")) {
             e.preventDefault();
-            alert("Debe confirmar que los datos son correctos");
+            alert("Debe confirmar que los datos ingresados son correctos");
             return false;
         }
         
         var monto = parseFloat($("#monto_total").val());
         var cuotas = parseInt($("#cantidad_cuotas").val());
+        var interes = parseFloat($("#interes_anual").val()) || 0;
         
-        if (monto < 100 || monto > 10000000) {
+        // Validar monto
+        if (isNaN(monto) || monto < 100 || monto > 10000000) {
             e.preventDefault();
             alert("El monto debe estar entre $100 y $10,000,000");
+            $("#monto_total").focus();
             return false;
         }
         
-        if (cuotas < 1 || cuotas > 120) {
+        // Validar cuotas
+        if (isNaN(cuotas) || cuotas < 1 || cuotas > 120) {
             e.preventDefault();
             alert("Las cuotas deben estar entre 1 y 120");
+            $("#cantidad_cuotas").focus();
             return false;
         }
         
-        if (!confirm("¿Confirma el registro del crédito por $" + monto.toFixed(2) + " en " + cuotas + " cuotas?")) {
+        // Calcular cuota para confirmación
+        var cuotaMensual = 0;
+        if (interes > 0) {
+            var interesMensual = (interes / 12) / 100;
+            cuotaMensual = monto * (interesMensual * Math.pow(1 + interesMensual, cuotas)) / 
+                          (Math.pow(1 + interesMensual, cuotas) - 1);
+        } else {
+            cuotaMensual = monto / cuotas;
+        }
+        
+        // Confirmar registro
+        var mensaje = "¿Confirmar registro del crédito?\\n\\n" +
+                     "Monto: $" + monto.toFixed(2) + "\\n" +
+                     "Cuotas: " + cuotas + "\\n" +
+                     "Interés: " + interes + "% anual\\n" +
+                     "Cuota mensual: $" + cuotaMensual.toFixed(2);
+        
+        if (!confirm(mensaje)) {
             e.preventDefault();
             return false;
         }
     });
     
-    // Calcular al cargar
+    // Calcular cuota inicial
     calcularCuota();
 });
 </script>

@@ -322,7 +322,9 @@ include '../includes/header.php';
 </div>
 
 <?php
+
 $extra_js = '
+
 <script>
     // Búsqueda de clientes con AJAX
     $("#buscar_cliente").on("keyup", function() {
@@ -335,6 +337,10 @@ $extra_js = '
                 data: { q: busqueda },
                 success: function(data) {
                     $("#resultados_busqueda").html(data);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error en búsqueda:", error);
+                    $("#resultados_busqueda").html("<div class=\"alert alert-danger\">Error al buscar clientes</div>");
                 }
             });
         } else {
@@ -360,16 +366,19 @@ $extra_js = '
             totalPagar = monto;
         }
         
-        $("#cuota_estimada").text("$" + cuotaMensual.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "                            <div class="row">
-                                <div class="col-md-6">
-                                    <p class="mb-2"><strong>,"));
-        $("#total_pagar").text("$" + totalPagar.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "                            <div class="row">
-                                <div class="col-md-6">
-                                    <p class="mb-2"><strong>,"));
+        // Formatear números con separador de miles
+        var cuotaFormateada = "$" + cuotaMensual.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+        var totalFormateado = "$" + totalPagar.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+        
+        $("#cuota_estimada").text(cuotaFormateada);
+        $("#total_pagar").text(totalFormateado);
     }
     
     $(document).ready(function() {
+        // Vincular eventos para cálculo automático
         $("#monto_total, #cantidad_cuotas, #interes_anual").on("input change", calcularCuota);
+        
+        // Calcular al cargar la página
         calcularCuota();
     });
 </script>

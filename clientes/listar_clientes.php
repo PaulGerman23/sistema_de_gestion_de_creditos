@@ -378,7 +378,9 @@ $extra_js = '
         });
     });
 </script>
+
 ';
 
 include '../includes/footer.php';
+
 ?>

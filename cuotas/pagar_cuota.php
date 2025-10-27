@@ -404,16 +404,16 @@ include '../includes/header.php';
                 <?php
                 $cuotas_disponibles->data_seek(0);
                 $counter = 1;
-                while ($cuota = $cuotas_disponibles->fetch_assoc() && $counter <= 5): 
+                while (($cuota = $cuotas_disponibles->fetch_assoc()) && $counter <= 5): 
                 ?>
-                <div class="mb-2">
-                    <strong>#<?php echo $cuota['numero_cuota']; ?></strong> - 
-                    $<?php echo number_format($cuota['monto_cuota'], 2); ?>
-                    <br><small class="text-muted"><?php echo $cuota['descripcion_credito']; ?></small>
-                    <br><small class="text-muted">Vence: <?php echo date('d/m/Y', strtotime($cuota['fecha_vencimiento'])); ?></small>
-                </div>
+                    <div class="mb-2">
+                        <strong>#<?php echo $cuota['numero_cuota']; ?></strong> - 
+                        $<?php echo number_format($cuota['monto_cuota'], 2); ?>
+                        <br><small class="text-muted"><?php echo $cuota['descripcion_credito']; ?></small>
+                        <br><small class="text-muted">Vence: <?php echo date('d/m/Y', strtotime($cuota['fecha_vencimiento'])); ?></small>
+                    </div>
                 <?php 
-                $counter++;
+                    $counter++;
                 endwhile; 
                 ?>
             </div>
